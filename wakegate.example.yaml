@@ -1,0 +1,106 @@
+# Copy to wakegate.yaml and edit the paths. Secrets stay in the environment:
+#   ${WAKEGATE_WEBHOOK_URL}  ${WAKEGATE_WEBHOOK_TOKEN}
+#   ${WAKEGATE_DISCORD_URL}  ${WAKEGATE_SLACK_URL}
+# Paths below are relative to this file. Quote globs, HH:MM times, and
+# timestamps so YAML does not eat them. ${NAME} is replaced when the config
+# loads; write $${NAME} when a shell command must see a literal ${NAME}.
+
+state: .wakegate/state.json
+log: .wakegate/runs.jsonl
+lock_timeout: 60
+
+wakes:
+  hook:
+    type: webhook
+    url: ${WAKEGATE_WEBHOOK_URL}
+    headers:
+      Authorization: Bearer ${WAKEGATE_WEBHOOK_TOKEN}
+    retries: 3
+    backoff: 0.5
+    timeout: 30
+  discord:
+    type: discord
+    url: ${WAKEGATE_DISCORD_URL}
+  slack:
+    type: slack
+    url: ${WAKEGATE_SLACK_URL}
+  agent:
+    type: command
+    # Replace this with the command that starts your agent.
+    run: my-agent --once
+    timeout: 600
+
+checks:
+  # First successful read is a baseline and does not wake.
+  - name: notes
+    type: file_changed
+    path: ./notes
+    glob: "*.md"
+    recursive: true
+    wake: hook
+    cooldown: 30m
+
+  # First successful fetch records current ids and does not wake.
+  - name: blog
+    type: feed_new_item
+    url: https://example.com/feed.xml
+    timeout: 20
+    wake: discord
+    cooldown: 15m
+
+  # Hash only the <main> region so a timestamp in the header is ignored.
+  # Use (?s) when the region spans lines. A start/end extract also works:
+  #   extract:
+  #     start: "<main>"
+  #     end: "</main>"
+  - name: status_page
+    type: url_changed
+    url: https://example.com/status
+    timeout: 20
+    extract:
+      regex: '(?s)<main[^>]*>(.*?)</main>'
+    wake: slack
+    cooldown: 1h
+
+  # Daily HH:MM plus one absolute timestamp, interpreted in timezone.
+  # window should be longer than the cron interval. This check has no
+  # cooldown, so a slot wakes on the first run that still falls inside it.
+  - name: daily_digest
+    type: schedule_due
+    timezone: UTC
+    times:
+      - "09:00"
+      - "18:00"
+    at:
+      - "2026-12-01T15:00:00+00:00"
+    window: 15m
+    wake: agent
+
+  # Directory of job files. Fires when more than threshold files match and
+  # the set of contents changed. Same bytes at the same paths do not re-fire.
+  - name: inbox
+    type: queue_nonempty
+    path: ./inbox
+    glob: "*.txt"
+    recursive: false
+    threshold: 0
+    wake: hook
+    cooldown: 5m
+
+  # A .json file containing an array is the same check type.
+  - name: jobs
+    type: queue_nonempty
+    path: ./jobs.jsonl
+    threshold: 0
+    wake: hook
+    cooldown: 5m
+
+  # Fires when the exit code becomes fire_on. The same exit code does not
+  # fire again until the command returns something else and then matches.
+  - name: flag
+    type: command
+    run: test -f ./wake.flag
+    fire_on: 0
+    timeout: 10
+    wake: agent
+    cooldown: 30m

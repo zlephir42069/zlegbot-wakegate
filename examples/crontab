@@ -1,0 +1,13 @@
+# Run wakegate every 10 minutes from the directory that holds wakegate.yaml.
+# Cron does not load a shell profile. Set wake URLs in the crontab or in a
+# file this line sources. Keep real URLs out of git.
+#
+# The schedule_due window in the config should be longer than this interval
+# (the example uses 15 minutes) so a slot is still due when the next run starts.
+#
+# WAKEGATE_WEBHOOK_URL=https://example.com/hooks/wakegate
+# WAKEGATE_WEBHOOK_TOKEN=replace-me
+# WAKEGATE_DISCORD_URL=https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN
+# WAKEGATE_SLACK_URL=https://hooks.slack.com/services/T000/B000/XXXXXXXX
+#
+*/10 * * * * cd /opt/wakegate && /usr/local/bin/wakegate run --config /opt/wakegate/wakegate.yaml

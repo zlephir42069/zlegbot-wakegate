@@ -1,0 +1,50 @@
+# Scheduled wakegate run.
+#
+# Copy this file to .github/workflows/wakegate.yml, commit wakegate.yaml
+# (environment references only, no secrets), and store the wake URLs in
+# GitHub Actions secrets.
+#
+# State cache tradeoff:
+# actions/cache keeps .wakegate/ between runs without extra commits. GitHub
+# can evict a cache. On a miss, file_changed, url_changed, and feed_new_item
+# take a new baseline and do not wake. schedule_due slots that are still
+# inside their window can fire again. The cache key includes wakegate.yaml,
+# so editing the config also starts a fresh baseline. There is no restore-key
+# fallback, for the same reason.
+#
+# Committing .wakegate/state.json instead survives eviction and can be
+# reviewed, but the workflow needs contents: write and each state change
+# pushes a commit. State holds hashes, feed ids, exit codes, and timestamps,
+# not wake URLs. The repo .gitignore ignores .wakegate/, so a commit-based
+# workflow has to force-add the state file. Leave runs.jsonl uncommitted if
+# you want a quiet history; the report is then only as old as the runner.
+
+name: wakegate
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .wakegate
+          key: wakegate-${{ hashFiles('wakegate.yaml') }}
+      - run: python -m pip install .
+      - run: wakegate run --config wakegate.yaml
+        env:
+          WAKEGATE_WEBHOOK_URL: ${{ secrets.WAKEGATE_WEBHOOK_URL }}
+          WAKEGATE_WEBHOOK_TOKEN: ${{ secrets.WAKEGATE_WEBHOOK_TOKEN }}
+          WAKEGATE_DISCORD_URL: ${{ secrets.WAKEGATE_DISCORD_URL }}
+          WAKEGATE_SLACK_URL: ${{ secrets.WAKEGATE_SLACK_URL }}

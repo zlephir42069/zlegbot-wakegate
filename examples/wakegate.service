@@ -1,0 +1,13 @@
+# systemd oneshot. Install with wakegate.timer.
+# /etc/wakegate.env holds WAKEGATE_* URLs, one KEY=value per line.
+# That file is not part of this repo. Do not commit it.
+# Change User= if the service should not run as root.
+
+[Unit]
+Description=Run wakegate checks once
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/lib/wakegate
+EnvironmentFile=/etc/wakegate.env
+ExecStart=/usr/local/bin/wakegate run --config /etc/wakegate.yaml
