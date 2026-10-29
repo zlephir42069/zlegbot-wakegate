@@ -1,0 +1,15 @@
+# Fires the oneshot service every 10 minutes.
+# Persistent=true runs a missed tick after boot. It does not replay old
+# schedule_due slots: a slot fires only while `now` is still inside its window.
+# Make that window longer than 10 minutes.
+
+[Unit]
+Description=Run wakegate every 10 minutes
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+Unit=wakegate.service
+
+[Install]
+WantedBy=timers.target
