@@ -6,7 +6,7 @@ The scheduled process is this script. It does not call a model. A webhook or a l
 
 ## 60-second quickstart
 
-Requires Python 3.9+ and a POSIX system (the state lock uses `fcntl`).
+Requires Python 3.10+ and a POSIX system (the state lock uses `fcntl`).
 
 ```bash
 python -m pip install -e .

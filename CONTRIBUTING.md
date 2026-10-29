@@ -4,7 +4,7 @@ Thanks for looking at wakegate. Keep changes small, and cover them with tests.
 
 ## Setup
 
-Python 3.9 or newer. The runtime dependencies are the standard library and PyYAML.
+Python 3.10 or newer. The runtime dependencies are the standard library and PyYAML.
 
 ```bash
 python -m pip install -e .
